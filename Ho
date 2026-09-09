@@ -1,0 +1,213 @@
+-- Nanoi Shopee Admin Script for Roblox Studio
+-- นำสคริปต์นี้ไปวางใน StarterPlayer -> StarterPlayerScripts หรือ StarterGui (LocalScript)
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
+-- 1. สร้าง หน้าจอ UI (ScreenGui)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NanoiShopeeGui"
+ScreenGui.ResetOnSpawn = false
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Parent = PlayerGui
+-- กล่องเมนูหลัก (Main Frame)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 12)
+FrameCorner.Parent = MainFrame
+-- หัวข้อ Nanoi Shopee
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, 0, 0, 50)
+TitleLabel.BackgroundColor3 = Color3.fromRGB(255, 87, 34) -- สีส้ม Shopee
+TitleLabel.Text = "🛒 Nanoi Shopee Menu"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 20
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.Parent = MainFrame
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleLabel
+-- Container จัดเรียงปุ่ม
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -20, 1, -70)
+Container.Position = UDim2.new(0, 10, 0, 60)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Container
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 10)
+-- ฟังก์ชันผู้ช่วยสร้างปุ่มกด
+local function createButton(text, color)
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(1, 0, 0, 42)
+btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 60)
+btn.Text = text
+btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+btn.Font = Enum.Font.SourceSansSemibold
+btn.TextSize = 16
+btn.Parent = Container
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = btn
+return btn
+end
+-- ฟังก์ชันที่ 1: Fly (ระบบบิน)
+local flying = false
+local flySpeed = 60
+local bodyVelocity, bodyGyro
+local flyButton = createButton("🚀 ระบบบิน (Fly): OFF", Color3.fromRGB(50, 50, 70))
+local function toggleFly()
+flying = not flying
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local hrp = character:FindFirstChild("HumanoidRootPart")
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+if flying then
+flyButton.Text = "🚀 ระบบบิน (Fly): ON"
+flyButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+bodyVelocity = Instance.new("BodyVelocity")
+bodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+bodyVelocity.Velocity = Vector3.zero
+bodyVelocity.Parent = hrp
+bodyGyro = Instance.new("BodyGyro")
+bodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+bodyGyro.CFrame = hrp.CFrame
+bodyGyro.Parent = hrp
+if humanoid then humanoid.PlatformStand = true end
+task.spawn(function()
+while flying and character and hrp do
+local camera = Workspace.CurrentCamera
+local moveDir = Vector3.zero
+if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+moveDir = moveDir + camera.CFrame.LookVector
+end
+if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+moveDir = moveDir - camera.CFrame.LookVector
+end
+if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+moveDir = moveDir - camera.CFrame.RightVector
+end
+if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+moveDir = moveDir + camera.CFrame.RightVector
+end
+if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+moveDir = moveDir + Vector3.new(0, 1, 0)
+end
+if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+moveDir = moveDir - Vector3.new(0, 1, 0)
+end
+bodyVelocity.Velocity = moveDir * flySpeed
+bodyGyro.CFrame = camera.CFrame
+RunService.RenderStepped:Wait()
+end
+end)
+else
+flyButton.Text = "🚀 ระบบบิน (Fly): OFF"
+flyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+if bodyVelocity then bodyVelocity:Destroy() end
+if bodyGyro then bodyGyro:Destroy() end
+if humanoid then humanoid.PlatformStand = false end
+end
+end
+flyButton.MouseButton1Click:Connect(toggleFly)
+-- ฟังก์ชันที่ 2: Kill (ฆ่าเป้าหมายตามชื่อ)
+local killFrame = Instance.new("Frame")
+killFrame.Size = UDim2.new(1, 0, 0, 42)
+killFrame.BackgroundTransparency = 1
+killFrame.Parent = Container
+local killInput = Instance.new("TextBox")
+killInput.Size = UDim2.new(0.65, -5, 1, 0)
+killInput.Position = UDim2.new(0, 0, 0, 0)
+killInput.PlaceholderText = "พิมพ์ชื่อผู้เล่น..."
+killInput.Text = ""
+killInput.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+killInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+killInput.Font = Enum.Font.SourceSans
+killInput.TextSize = 15
+killInput.Parent = killFrame
+local killInputCorner = Instance.new("UICorner")
+killInputCorner.CornerRadius = UDim.new(0, 8)
+killInputCorner.Parent = killInput
+local killBtn = Instance.new("TextButton")
+killBtn.Size = UDim2.new(0.35, 0, 1, 0)
+killBtn.Position = UDim2.new(0.65, 5, 0, 0)
+killBtn.Text = "☠️ ฆ่า (Kill)"
+killBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+killBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+killBtn.Font = Enum.Font.SourceSansBold
+killBtn.TextSize = 15
+killBtn.Parent = killFrame
+local killBtnCorner = Instance.new("UICorner")
+killBtnCorner.CornerRadius = UDim.new(0, 8)
+killBtnCorner.Parent = killBtn
+killBtn.MouseButton1Click:Connect(function()
+local targetName = string.lower(killInput.Text)
+if targetName == "" then return end
+for _, targetPlayer in ipairs(Players:GetPlayers()) do
+if string.find(string.lower(targetPlayer.Name), targetName) or string.find(string.lower(targetPlayer.DisplayName), targetName) then
+if targetPlayer.Character and targetPlayer.Character:FindFirstChildOfClass("Humanoid") then
+targetPlayer.Character:FindFirstChildOfClass("Humanoid").Health = 0
+end
+end
+end
+end)
+-- ฟังก์ชันที่ 3: เสกของทุกอย่างในแมพ (Spawn All Items)
+local spawnItemsBtn = createButton("🎁 เสกของทั้งหมดในแมพ", Color3.fromRGB(155, 89, 182))
+local function getMapItems()
+local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
+if not backpack then return end
+local function checkAndClone(container)
+for _, obj in ipairs(container:GetDescendants()) do
+if obj:IsA("Tool") then
+local clonedTool = obj:Clone()
+clonedTool.Parent = backpack
+end
+end
+end
+-- สแกนพื้นที่จัดเก็บไอเทมในแมพ
+checkAndClone(Workspace)
+checkAndClone(ReplicatedStorage)
+checkAndClone(Lighting)
+end
+spawnItemsBtn.MouseButton1Click:Connect(getMapItems)
+-- ฟังก์ชันที่ 4: หยิบของไว (Fast Pickup - ProximityPrompt)
+local fastPickupBtn = createButton("⚡ หยิบของไว (Fast Pickup): OFF", Color3.fromRGB(50, 50, 70))
+local fastPickupActive = false
+local function applyFastPickup(prompt)
+if prompt:IsA("ProximityPrompt") then
+prompt.HoldDuration = 0
+end
+end
+local function toggleFastPickup()
+fastPickupActive = not fastPickupActive
+if fastPickupActive then
+fastPickupBtn.Text = "⚡ หยิบของไว (Fast Pickup): ON"
+fastPickupBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+-- ปรับระยะเวลากดของที่มีอยู่ทั้งหมด
+for _, prompt in ipairs(Workspace:GetDescendants()) do
+applyFastPickup(prompt)
+end
+-- ปรับอัตโนมัติเมื่อมีของใหม่ถูกเสกขึ้นมา
+Workspace.DescendantAdded:Connect(function(descendant)
+if fastPickupActive then
+applyFastPickup(descendant)
+end
+end)
+else
+fastPickupBtn.Text = "⚡ หยิบของไว (Fast Pickup): OFF"
+fastPickupBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+end
+end
+fastPickupBtn.MouseButton1Click:Connect(toggleFastPickup)
